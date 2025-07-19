@@ -1904,6 +1904,10 @@ namespace EnterpriseNVR
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Load configuration from file so we can read initial settings
+            builder.Configuration.AddJsonFile("/etc/nvr/config.json", optional: true);
+            var config = builder.Configuration.Get<NvrConfig>() ?? new NvrConfig();
+
             // Configure services
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
@@ -1914,15 +1918,8 @@ namespace EnterpriseNVR
             // Core NVR services
             builder.Services.AddSingleton<ConfigurationManager>();
             builder.Services.AddSingleton<StorageManager>();
-            
+
             // Optional enhanced services (only if authentication is enabled)
-            var tempServiceProvider = builder.Services.BuildServiceProvider();
-            var configManager = tempServiceProvider.GetRequiredService<ConfigurationManager>();
-            var config = configManager.GetConfiguration();
-
-            DatabaseService? database = null;
-            AuthenticationService? authService = null;
-
             if (config.RequireAuthentication)
             {
                 // Add enhanced services with authentication
@@ -1956,11 +1953,8 @@ namespace EnterpriseNVR
                     });
 
                 builder.Services.AddAuthorization();
-
-                // Update services to use enhanced version
-                database = tempServiceProvider.GetService<DatabaseService>();
-                authService = tempServiceProvider.GetService<AuthenticationService>();
             }
+
 
             builder.Services.AddSingleton<VideoStreamingService>();
             
