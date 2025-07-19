@@ -271,7 +271,9 @@ namespace EnterpriseNVR
         {
             _logger = logger;
             var dbPath = Path.Combine(config.StorageBasePath, "nvr.db");
-            _connectionString = $"Data Source={dbPath};Version=3;";
+            // Microsoft.Data.Sqlite does not support the "Version" keyword, so
+            // we only specify the data source path
+            _connectionString = $"Data Source={dbPath}";
             InitializeDatabase();
         }
 
