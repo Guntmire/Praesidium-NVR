@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -281,7 +281,7 @@ namespace EnterpriseNVR
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(_connectionString.Split('=')[1].Split(';')[0])!);
                 
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 var createTables = @"
@@ -337,7 +337,7 @@ namespace EnterpriseNVR
                     CREATE INDEX IF NOT EXISTS idx_audit_user_time ON AuditLog(UserId, Timestamp);
                 ";
 
-                using var command = new SQLiteCommand(createTables, connection);
+                using var command = new SqliteCommand(createTables, connection);
                 command.ExecuteNonQuery();
 
                 CreateDefaultUserIfNeeded(connection);
@@ -351,10 +351,10 @@ namespace EnterpriseNVR
             }
         }
 
-        private void CreateDefaultUserIfNeeded(SQLiteConnection connection)
+        private void CreateDefaultUserIfNeeded(SqliteConnection connection)
         {
             const string checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = 'admin'";
-            using var checkCommand = new SQLiteCommand(checkQuery, connection);
+            using var checkCommand = new SqliteCommand(checkQuery, connection);
             var userExists = Convert.ToInt32(checkCommand.ExecuteScalar()) > 0;
 
             if (!userExists)
@@ -375,14 +375,14 @@ namespace EnterpriseNVR
 
         public void CreateUser(User user)
         {
-            using var connection = new SQLiteConnection(_connectionString);
+            using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
             const string query = @"
                 INSERT INTO Users (Id, Username, PasswordHash, Roles, AllowedCameras, CreatedAt, LastLogin, IsActive, Email)
                 VALUES (@Id, @Username, @PasswordHash, @Roles, @AllowedCameras, @CreatedAt, @LastLogin, @IsActive, @Email)";
 
-            using var command = new SQLiteCommand(query, connection);
+            using var command = new SqliteCommand(query, connection);
             command.Parameters.AddWithValue("@Id", user.Id);
             command.Parameters.AddWithValue("@Username", user.Username);
             command.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
@@ -398,11 +398,11 @@ namespace EnterpriseNVR
 
         public User? GetUserByUsername(string username)
         {
-            using var connection = new SQLiteConnection(_connectionString);
+            using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
             const string query = "SELECT * FROM Users WHERE Username = @Username AND IsActive = 1";
-            using var command = new SQLiteCommand(query, connection);
+            using var command = new SqliteCommand(query, connection);
             command.Parameters.AddWithValue("@Username", username);
 
             using var reader = command.ExecuteReader();
@@ -427,11 +427,11 @@ namespace EnterpriseNVR
 
         public void UpdateUserLastLogin(string userId)
         {
-            using var connection = new SQLiteConnection(_connectionString);
+            using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
             const string query = "UPDATE Users SET LastLogin = @LastLogin WHERE Id = @Id";
-            using var command = new SQLiteCommand(query, connection);
+            using var command = new SqliteCommand(query, connection);
             command.Parameters.AddWithValue("@LastLogin", DateTime.UtcNow.ToString("O"));
             command.Parameters.AddWithValue("@Id", userId);
 
@@ -442,14 +442,14 @@ namespace EnterpriseNVR
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = @"
                     INSERT INTO Events (Id, CameraId, EventType, Timestamp, Description, Severity, Data)
                     VALUES (@Id, @CameraId, @EventType, @Timestamp, @Description, @Severity, @Data)";
 
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@Id", Guid.NewGuid().ToString());
                 command.Parameters.AddWithValue("@CameraId", cameraId);
                 command.Parameters.AddWithValue("@EventType", eventType);
@@ -470,14 +470,14 @@ namespace EnterpriseNVR
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = @"
                     INSERT INTO AuditLog (Id, UserId, Action, Target, Timestamp, IpAddress, UserAgent, Success, Details)
                     VALUES (@Id, @UserId, @Action, @Target, @Timestamp, @IpAddress, @UserAgent, @Success, @Details)";
 
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@Id", Guid.NewGuid().ToString());
                 command.Parameters.AddWithValue("@UserId", userId);
                 command.Parameters.AddWithValue("@Action", action);
@@ -502,7 +502,7 @@ namespace EnterpriseNVR
 
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = @"
@@ -513,7 +513,7 @@ namespace EnterpriseNVR
                     ORDER BY StartTime DESC 
                     LIMIT @Limit";
 
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@CameraId", cameraId);
                 command.Parameters.AddWithValue("@StartTime", startTime.ToString("O"));
                 command.Parameters.AddWithValue("@EndTime", endTime.ToString("O"));
@@ -542,14 +542,14 @@ namespace EnterpriseNVR
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = @"
                     INSERT INTO Recordings (Id, CameraId, CameraName, StartTime, FilePath, FileSize, Duration, IsEncrypted, CreatedAt)
                     VALUES (@Id, @CameraId, @CameraName, @StartTime, @FilePath, @FileSize, @Duration, @IsEncrypted, @CreatedAt)";
 
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@Id", Guid.NewGuid().ToString());
                 command.Parameters.AddWithValue("@CameraId", cameraId);
                 command.Parameters.AddWithValue("@CameraName", cameraName);
