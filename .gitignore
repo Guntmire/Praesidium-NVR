@@ -1,0 +1,32 @@
+# Build outputs
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# User-specific files
+*.user
+*.suo
+*.cache
+*.userprefs
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Backup folders
+backup_*/
+
+# Logs
+*.log
+
+# NVR specific
+/var/nvr/
+nvr.db
+config.json
+
+# OS files
+.DS_Store
+Thumbs.db
