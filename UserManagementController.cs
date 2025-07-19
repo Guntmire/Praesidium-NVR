@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace EnterpriseNVR  // Match your existing namespace
 {
@@ -67,11 +67,11 @@ namespace EnterpriseNVR  // Match your existing namespace
             
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = "SELECT * FROM Users ORDER BY Username";
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 using var reader = command.ExecuteReader();
 
                 while (reader.Read())
@@ -102,11 +102,11 @@ namespace EnterpriseNVR  // Match your existing namespace
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = "SELECT * FROM Users WHERE Id = @Id";
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@Id", userId);
 
                 using var reader = command.ExecuteReader();
@@ -138,7 +138,7 @@ namespace EnterpriseNVR  // Match your existing namespace
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 var setParts = new List<string>();
@@ -178,7 +178,7 @@ namespace EnterpriseNVR  // Match your existing namespace
 
                 var query = $"UPDATE Users SET {string.Join(", ", setParts)} WHERE Id = @Id";
                 
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@Id", userId);
                 
                 foreach (var (name, value) in parameters)
@@ -199,11 +199,11 @@ namespace EnterpriseNVR  // Match your existing namespace
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = "DELETE FROM Users WHERE Id = @Id";
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@Id", userId);
 
                 return command.ExecuteNonQuery() > 0;
@@ -219,11 +219,11 @@ namespace EnterpriseNVR  // Match your existing namespace
         {
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 const string query = "UPDATE Users SET PasswordHash = @PasswordHash WHERE Id = @Id";
-                using var command = new SQLiteCommand(query, connection);
+                using var command = new SqliteCommand(query, connection);
                 command.Parameters.AddWithValue("@PasswordHash", BCrypt.Net.BCrypt.HashPassword(newPassword));
                 command.Parameters.AddWithValue("@Id", userId);
 
@@ -242,20 +242,20 @@ namespace EnterpriseNVR  // Match your existing namespace
 
             try
             {
-                using var connection = new SQLiteConnection(_connectionString);
+                using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
                 // Total users
-                using var totalCommand = new SQLiteCommand("SELECT COUNT(*) FROM Users", connection);
+                using var totalCommand = new SqliteCommand("SELECT COUNT(*) FROM Users", connection);
                 stats["totalUsers"] = Convert.ToInt32(totalCommand.ExecuteScalar());
 
                 // Active users
-                using var activeCommand = new SQLiteCommand("SELECT COUNT(*) FROM Users WHERE IsActive = 1", connection);
+                using var activeCommand = new SqliteCommand("SELECT COUNT(*) FROM Users WHERE IsActive = 1", connection);
                 stats["activeUsers"] = Convert.ToInt32(activeCommand.ExecuteScalar());
 
                 // Users by role
                 var roleStats = new Dictionary<string, int>();
-                using var roleCommand = new SQLiteCommand("SELECT Roles FROM Users WHERE IsActive = 1", connection);
+                using var roleCommand = new SqliteCommand("SELECT Roles FROM Users WHERE IsActive = 1", connection);
                 using var roleReader = roleCommand.ExecuteReader();
                 
                 while (roleReader.Read())
@@ -269,13 +269,13 @@ namespace EnterpriseNVR  // Match your existing namespace
                 stats["usersByRole"] = roleStats;
 
                 // Recent logins (last 24 hours)
-                using var recentCommand = new SQLiteCommand(
+                using var recentCommand = new SqliteCommand(
                     "SELECT COUNT(*) FROM AuditLog WHERE Action = 'Login' AND Success = 1 AND Timestamp > datetime('now', '-1 day')", 
                     connection);
                 stats["recentLogins"] = Convert.ToInt32(recentCommand.ExecuteScalar());
 
                 // Failed login attempts (last 24 hours)
-                using var failedCommand = new SQLiteCommand(
+                using var failedCommand = new SqliteCommand(
                     "SELECT COUNT(*) FROM AuditLog WHERE Action = 'Login' AND Success = 0 AND Timestamp > datetime('now', '-1 day')", 
                     connection);
                 stats["failedLogins"] = Convert.ToInt32(failedCommand.ExecuteScalar());
