@@ -48,7 +48,7 @@ namespace EnterpriseNVR
         public bool EnableAuditLog { get; set; } = true;
         public string[] AllowedNetworks { get; set; } = { "127.0.0.1/32", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" };
         public string JwtSecret { get; set; } = string.Empty;
-        public bool RequireAuthentication { get; set; } = false; // Default to false for backward compatibility
+        public bool RequireAuthentication { get; set; } = true; // Enabled by default for improved security
         public EmailConfig EmailConfig { get; set; } = new();
     }
 
