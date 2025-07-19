@@ -262,7 +262,7 @@ namespace EnterpriseNVR
     }
 
     // Database Service for Enhanced Features
-    public class DatabaseService
+    public partial class DatabaseService
     {
         private readonly string _connectionString;
         private readonly ILogger<DatabaseService> _logger;
