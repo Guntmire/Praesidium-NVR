@@ -9,7 +9,7 @@
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
         .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #eee; }
         .tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 20px; }
-        .tab { padding: 15px 30px; cursor: pointer; border: none; background: #f8f9fa; font-size: 16px; margin-right: 2px; }
+        .tab { padding: 15px 30px; cursor: pointer; border: none; background: #f8f9fa; font-size: 16px; margin-right: 2px; text-decoration: none; display: inline-block; color: inherit; }
         .tab.active { background: #007cba; color: white; }
         .tab:hover { background: #e9ecef; }
         .tab.active:hover { background: #005a8b; }
@@ -67,6 +67,8 @@
         
         <div class="tabs">
             <button class="tab active" id="dashboardTab">Dashboard</button>
+            <a class="tab" id="camerasTab" href="cameras.html">Cameras</a>
+            <a class="tab" id="usersTab" href="users.html">Users</a>
             <button class="tab" id="storageTab">Storage</button>
         </div>
 

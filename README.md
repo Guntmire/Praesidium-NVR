@@ -22,6 +22,6 @@ The service listens on port 8080 by default. Customize settings in `/etc/nvr/con
 
 ## Optional Authentication
 
-Authentication is disabled by default. Set `RequireAuthentication: true` in the configuration file to enable JWT based login. When enabled, the default credentials are `admin/admin123!` (change immediately). The console output on startup reflects the current authentication mode.
+Authentication is now enabled by default. To disable it, set `RequireAuthentication: false` in the configuration file. When enabled, the default credentials are `admin/admin123!` (change immediately). The console output on startup reflects the current authentication mode.
 
 
