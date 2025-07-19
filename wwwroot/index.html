@@ -67,7 +67,6 @@
         
         <div class="tabs">
             <button class="tab active" id="dashboardTab">Dashboard</button>
-            <button class="tab" id="camerasTab">Camera Management</button>
             <button class="tab" id="storageTab">Storage</button>
         </div>
 
@@ -86,17 +85,6 @@
             </div>
         </div>
 
-        <!-- Camera Management Tab -->
-        <div id="cameras" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Camera Management</h2>
-                    <button class="btn-success" onclick="showAddCameraModal()">Add Camera</button>
-                </div>
-                <div id="cameraList"></div>
-            </div>
-        </div>
-
         <!-- Storage Tab -->
         <div id="storage" class="tab-content">
             <div class="section">
@@ -107,60 +95,11 @@
         </div>
     </div>
 
-    <!-- Camera Modal -->
-    <div id="cameraModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Add Camera</h3>
-                <span class="close" onclick="closeCameraModal()">&times;</span>
-            </div>
-            <form id="cameraForm">
-                <div class="form-group">
-                    <label>Camera Name:</label>
-                    <input type="text" id="cameraName" required>
-                </div>
-                <div class="form-group">
-                    <label>RTSP URL:</label>
-                    <input type="text" id="rtspUrl" placeholder="rtsp://192.168.1.100:554/stream" required>
-                </div>
-                <div class="form-group">
-                    <label>Username (optional):</label>
-                    <input type="text" id="username">
-                </div>
-                <div class="form-group">
-                    <label>Password (optional):</label>
-                    <input type="password" id="password">
-                </div>
-                <div class="form-group">
-                    <label>Storage Pool:</label>
-                    <select id="storagePool"></select>
-                </div>
-                <div class="form-group">
-                    <label>Recording Days:</label>
-                    <input type="number" id="recordingDays" value="30" min="1" max="365">
-                </div>
-                <div class="form-group">
-                    <label><input type="checkbox" id="enabled" checked> Enabled</label>
-                </div>
-                <div class="form-group">
-                    <label><input type="checkbox" id="encryptStorage" checked> Encrypt Storage</label>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" onclick="closeCameraModal()">Cancel</button>
-                    <button type="submit" class="btn-success">Save Camera</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <script>
-        let cameras = [];
         let storagePools = [];
-        let editingCameraId = null;
 
         // Tab functionality
         document.getElementById('dashboardTab').addEventListener('click', () => showTab('dashboard'));
-        document.getElementById('camerasTab').addEventListener('click', () => showTab('cameras'));
         document.getElementById('storageTab').addEventListener('click', () => showTab('storage'));
 
         function showTab(tabName) {
@@ -170,8 +109,11 @@
             document.getElementById(tabName + 'Tab').classList.add('active');
             document.getElementById(tabName).classList.add('active');
             
-            if (tabName === 'cameras') {
-                loadCameras();
+            // Load data when switching tabs
+            if (tabName === 'storage') {
+                refreshStorage();
+            } else if (tabName === 'dashboard') {
+                refreshStatus();
             }
         }
 
@@ -274,164 +216,6 @@
             }
         }
 
-        // Camera Management Functions
-        async function loadCameras() {
-            try {
-                const response = await fetch('/api/nvr/cameras');
-                cameras = await response.json();
-                renderCameras();
-            } catch (error) {
-                console.error('Error loading cameras:', error);
-                document.getElementById('cameraList').innerHTML = '<div class="empty-state">Error loading cameras</div>';
-            }
-        }
-
-        function renderCameras() {
-            const container = document.getElementById('cameraList');
-            
-            if (cameras.length === 0) {
-                container.innerHTML = '<div class="empty-state">No cameras configured. Click "Add Camera" to get started.</div>';
-                return;
-            }
-
-            let html = '';
-            cameras.forEach(camera => {
-                html += `
-                    <div class='camera-card'>
-                        <div class='camera-header'>
-                            <div class='camera-name'>${camera.name}</div>
-                            <div class='camera-actions'>
-                                <button class='btn-success' onclick='startCamera("${camera.id}")'>Start</button>
-                                <button class='btn-danger' onclick='stopCamera("${camera.id}")'>Stop</button>
-                                <button onclick='editCamera("${camera.id}")'>Edit</button>
-                                <button class='btn-danger' onclick='deleteCamera("${camera.id}")'>Delete</button>
-                            </div>
-                        </div>
-                        <div>
-                            <strong>RTSP URL:</strong> ${camera.rtspUrl}<br>
-                            <strong>Status:</strong> ${camera.enabled ? 'Enabled' : 'Disabled'}<br>
-                            <strong>Recording Days:</strong> ${camera.recordingDays}<br>
-                            <strong>Encryption:</strong> ${camera.encryptStorage ? 'Enabled' : 'Disabled'}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function showAddCameraModal() {
-            editingCameraId = null;
-            document.getElementById('modalTitle').textContent = 'Add Camera';
-            document.getElementById('cameraForm').reset();
-            document.getElementById('enabled').checked = true;
-            document.getElementById('encryptStorage').checked = true;
-            document.getElementById('recordingDays').value = 30;
-            populateStoragePoolSelect();
-            document.getElementById('cameraModal').style.display = 'block';
-        }
-
-        function editCamera(cameraId) {
-            const camera = cameras.find(c => c.id === cameraId);
-            if (!camera) return;
-            
-            editingCameraId = cameraId;
-            document.getElementById('modalTitle').textContent = 'Edit Camera';
-            document.getElementById('cameraName').value = camera.name;
-            document.getElementById('rtspUrl').value = camera.rtspUrl;
-            document.getElementById('username').value = camera.username || '';
-            document.getElementById('password').value = camera.password || '';
-            document.getElementById('recordingDays').value = camera.recordingDays;
-            document.getElementById('enabled').checked = camera.enabled;
-            document.getElementById('encryptStorage').checked = camera.encryptStorage;
-            populateStoragePoolSelect();
-            document.getElementById('storagePool').value = camera.storagePoolId;
-            document.getElementById('cameraModal').style.display = 'block';
-        }
-
-        function populateStoragePoolSelect() {
-            const select = document.getElementById('storagePool');
-            select.innerHTML = '';
-            storagePools.forEach(pool => {
-                const option = document.createElement('option');
-                option.value = pool.id;
-                option.textContent = pool.name;
-                select.appendChild(option);
-            });
-        }
-
-        function closeCameraModal() {
-            document.getElementById('cameraModal').style.display = 'none';
-            editingCameraId = null;
-        }
-
-        // Camera form submission
-        document.getElementById('cameraForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const cameraData = {
-                name: document.getElementById('cameraName').value,
-                rtspUrl: document.getElementById('rtspUrl').value,
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                storagePoolId: document.getElementById('storagePool').value,
-                recordingDays: parseInt(document.getElementById('recordingDays').value),
-                enabled: document.getElementById('enabled').checked,
-                encryptStorage: document.getElementById('encryptStorage').checked
-            };
-
-            try {
-                let response;
-                if (editingCameraId) {
-                    response = await fetch(`/api/nvr/cameras/${editingCameraId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cameraData)
-                    });
-                } else {
-                    response = await fetch('/api/nvr/cameras', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cameraData)
-                    });
-                }
-
-                if (response.ok) {
-                    closeCameraModal();
-                    loadCameras();
-                    refreshStatus(); // Refresh dashboard status
-                    alert(editingCameraId ? 'Camera updated successfully' : 'Camera added successfully');
-                } else {
-                    const error = await response.json();
-                    alert('Error: ' + error.error);
-                }
-            } catch (error) {
-                console.error('Error saving camera:', error);
-                alert('Error saving camera');
-            }
-        });
-
-        async function deleteCamera(cameraId) {
-            if (!confirm('Are you sure you want to delete this camera?')) return;
-            
-            try {
-                const response = await fetch(`/api/nvr/cameras/${cameraId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    loadCameras();
-                    refreshStatus(); // Refresh dashboard status
-                    alert('Camera deleted successfully');
-                } else {
-                    const error = await response.json();
-                    alert('Error: ' + error.error);
-                }
-            } catch (error) {
-                console.error('Error deleting camera:', error);
-                alert('Error deleting camera');
-            }
-        }
 
         async function startCamera(cameraId) {
             try {
@@ -471,12 +255,6 @@
             }
         }
 
-        // Close modal when clicking outside
-        document.getElementById('cameraModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeCameraModal();
-            }
-        });
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
