@@ -583,7 +583,7 @@ namespace EnterpriseNVR
             _jwtSecret = config.JwtSecret;
         }
 
-        public async Task<LoginResponse?> AuthenticateAsync(LoginRequest request, string ipAddress, string userAgent)
+        public LoginResponse? AuthenticateAsync(LoginRequest request, string ipAddress, string userAgent)
         {
             try
             {
@@ -650,7 +650,7 @@ namespace EnterpriseNVR
             _storageManager = storageManager;
         }
 
-        public async Task<string> StartLiveStreamAsync(CameraConfig camera)
+        public string StartLiveStreamAsync(CameraConfig camera)
         {
             var streamId = Guid.NewGuid().ToString("N")[..8];
             var outputPath = $"/tmp/live_{streamId}.m3u8";
@@ -861,7 +861,7 @@ namespace EnterpriseNVR
             _ = Task.Run(RetentionCleanupAsync);
         }
 
-        public async Task StartCameraAsync(CameraConfig camera)
+        public Task StartCameraAsync(CameraConfig camera)
         {
             if (_streamInfo.Count >= _config.MaxConcurrentStreams)
             {
@@ -889,6 +889,8 @@ namespace EnterpriseNVR
             });
 
             _ = Task.Run(async () => await ManageStreamAsync(camera, cts.Token));
+
+            return Task.CompletedTask;
         }
 
         private async Task ManageStreamAsync(CameraConfig camera, CancellationToken cancellationToken)
@@ -1246,7 +1248,7 @@ namespace EnterpriseNVR
             }
         }
 
-        private async Task CleanupExpiredFiles(CameraConfig camera)
+        private Task CleanupExpiredFiles(CameraConfig camera)
         {
             try
             {
@@ -1285,6 +1287,8 @@ namespace EnterpriseNVR
             {
                 _logger.LogError($"Error cleaning up expired files for camera {camera.Name}: {ex.Message}");
             }
+
+            return Task.CompletedTask;
         }
 
         public async Task StopCameraAsync(string cameraId)
@@ -1698,7 +1702,7 @@ namespace EnterpriseNVR
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public IActionResult Login([FromBody] LoginRequest request)
         {
             if (_authService == null)
                 return BadRequest(new { error = "Authentication not enabled" });
@@ -1708,7 +1712,7 @@ namespace EnterpriseNVR
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
                 var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
 
-                var response = await _authService.AuthenticateAsync(request, ipAddress, userAgent);
+                var response = _authService.AuthenticateAsync(request, ipAddress, userAgent);
                 
                 if (response == null)
                     return Unauthorized(new { error = "Invalid credentials" });
