@@ -25,3 +25,10 @@ The service listens on port 8080 by default. Customize settings in `/etc/nvr/con
 Authentication is now enabled by default. To disable it, set `RequireAuthentication: false` in the configuration file. When enabled, the default credentials are `admin/admin123!` (change immediately). The console output on startup reflects the current authentication mode.
 
 
+
+## Web Interface
+
+The UI is implemented as a single HTML page (`wwwroot/index.html`). The tab bar and panels, including the **Storage** tab, are sections in this file that are toggled with JavaScript. Clicking a tab simply reveals its panel without leaving the page.
+
+If `RequireAuthentication` is set to `false` in the configuration, these static pages can be opened directly. API endpoints still enforce authentication whenever it is enabled. The check is handled by middleware in `Program.cs`.
+
