@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using System.Data.SQLite;
 
 namespace EnterpriseNVR  // Match your existing namespace
 {
