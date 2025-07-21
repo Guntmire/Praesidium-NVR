@@ -4,6 +4,7 @@
     <title>Enterprise NVR System</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
@@ -69,6 +70,8 @@
             <button class="tab active" id="dashboardTab">Dashboard</button>
             <a class="tab" id="camerasTab" href="cameras.html">Cameras</a>
             <a class="tab" id="usersTab" href="users.html">Users</a>
+            <button class="tab" id="liveTab">Live</button>
+            <button class="tab" id="recordTab">Recordings</button>
             <button class="tab" id="storageTab">Storage</button>
         </div>
 
@@ -84,6 +87,34 @@
                 <h2>Stream Status</h2>
                 <div id="status"></div>
                 <button onclick="refreshStatus()">Refresh Status</button>
+            </div>
+        </div>
+
+        <!-- Live Tab -->
+        <div id="live" class="tab-content">
+            <div class="section">
+                <h2>Live View</h2>
+                <label>Camera:</label>
+                <select id="liveCamera"></select>
+                <button onclick="startLive()">Start</button>
+                <button onclick="stopLive()">Stop</button>
+                <video id="liveVideo" controls autoplay style="width:100%;max-width:600px;margin-top:10px;display:none;"></video>
+            </div>
+        </div>
+
+        <!-- Recordings Tab -->
+        <div id="record" class="tab-content">
+            <div class="section">
+                <h2>Search Recordings</h2>
+                <label>Camera:</label>
+                <select id="recordCamera"></select>
+                <label>Start:</label>
+                <input type="datetime-local" id="startTime">
+                <label>End:</label>
+                <input type="datetime-local" id="endTime">
+                <button onclick="searchRecordings()">Search</button>
+                <div id="recordingsList" style="margin-top:10px;"></div>
+                <video id="playbackVideo" controls style="width:100%;max-width:600px;margin-top:10px;display:none;"></video>
             </div>
         </div>
 
@@ -103,6 +134,8 @@
         // Tab functionality
         document.getElementById('dashboardTab').addEventListener('click', () => showTab('dashboard'));
         document.getElementById('storageTab').addEventListener('click', () => showTab('storage'));
+        document.getElementById('liveTab').addEventListener('click', () => showTab('live'));
+        document.getElementById('recordTab').addEventListener('click', () => showTab('record'));
 
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -116,6 +149,8 @@
                 refreshStorage();
             } else if (tabName === 'dashboard') {
                 refreshStatus();
+            } else if (tabName === 'live' || tabName === 'record') {
+                loadCamerasForSelects();
             }
         }
 
@@ -257,12 +292,102 @@
             }
         }
 
+        // Load cameras for live view and recordings
+        async function loadCamerasForSelects() {
+            try {
+                const resp = await fetch('/api/nvr/cameras');
+                const cams = await resp.json();
+                const liveSel = document.getElementById('liveCamera');
+                const recSel = document.getElementById('recordCamera');
+                liveSel.innerHTML = '';
+                recSel.innerHTML = '';
+                cams.forEach(c => {
+                    const opt1 = document.createElement('option');
+                    opt1.value = c.id;
+                    opt1.textContent = c.name;
+                    liveSel.appendChild(opt1.cloneNode(true));
+                    recSel.appendChild(opt1);
+                });
+            } catch (e) {
+                console.error('Error loading cameras', e);
+            }
+        }
+
+        let liveStreamId = null;
+        function cleanupVideo(video) {
+            if (video.hls) { video.hls.destroy(); video.hls = null; }
+            video.src = '';
+            video.style.display = 'none';
+        }
+
+        async function startLive() {
+            const cam = document.getElementById('liveCamera').value;
+            if (!cam) return;
+            try {
+                const res = await fetch(`/api/nvr/live/${cam}`);
+                if (!res.ok) return alert('Failed to start live stream');
+                const data = await res.json();
+                liveStreamId = data.streamId;
+                const url = `/api/nvr/live/${liveStreamId}/playlist`;
+                const video = document.getElementById('liveVideo');
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    video.hls = hls;
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                } else {
+                    video.src = url;
+                }
+                video.style.display = 'block';
+            } catch (e) {
+                console.error(e);
+                alert('Error starting live view');
+            }
+        }
+
+        async function stopLive() {
+            if (!liveStreamId) return;
+            await fetch(`/api/nvr/live/${liveStreamId}/stop`, { method: 'POST' });
+            liveStreamId = null;
+            cleanupVideo(document.getElementById('liveVideo'));
+        }
+
+        async function searchRecordings() {
+            const cam = document.getElementById('recordCamera').value;
+            if (!cam) return;
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+            const url = `/api/nvr/recordings/${cam}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+            try {
+                const res = await fetch(url);
+                const recs = await res.json();
+                let html = '<ul>';
+                recs.forEach(r => {
+                    html += `<li><a href="#" onclick="playRecording('${r.FilePath}');return false;">${new Date(r.StartTime).toLocaleString()}</a></li>`;
+                });
+                html += '</ul>';
+                document.getElementById('recordingsList').innerHTML = html;
+            } catch (e) {
+                console.error(e);
+                document.getElementById('recordingsList').innerHTML = 'Error loading recordings';
+            }
+        }
+
+        function playRecording(path) {
+            const video = document.getElementById('playbackVideo');
+            cleanupVideo(video);
+            video.src = `/api/nvr/playback?path=${encodeURIComponent(path)}`;
+            video.style.display = 'block';
+            video.play();
+        }
+
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             refreshMetrics();
             refreshStatus();
             refreshStorage();
+            loadCamerasForSelects();
             
             // Auto-refresh
             setInterval(refreshMetrics, 10000);
