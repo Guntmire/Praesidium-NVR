@@ -1379,7 +1379,15 @@ namespace EnterpriseNVR
                 if (File.Exists(_configPath))
                 {
                     var json = File.ReadAllText(_configPath);
-                    _config = JsonSerializer.Deserialize<NvrConfig>(json) ?? new NvrConfig();
+                    if (string.IsNullOrWhiteSpace(json))
+                    {
+                        _config = new NvrConfig();
+                        _logger.LogWarning("Configuration file empty, using defaults");
+                    }
+                    else
+                    {
+                        _config = JsonSerializer.Deserialize<NvrConfig>(json) ?? new NvrConfig();
+                    }
                 }
                 else
                 {
@@ -1962,7 +1970,11 @@ namespace EnterpriseNVR
             var builder = WebApplication.CreateBuilder(args);
 
             // Load configuration from file so we can read initial settings
-            builder.Configuration.AddJsonFile("/etc/nvr/config.json", optional: true);
+            var configFile = "/etc/nvr/config.json";
+            if (File.Exists(configFile) && new FileInfo(configFile).Length > 0)
+            {
+                builder.Configuration.AddJsonFile(configFile, optional: true);
+            }
             var config = builder.Configuration.Get<NvrConfig>() ?? new NvrConfig();
 
             // Configure services

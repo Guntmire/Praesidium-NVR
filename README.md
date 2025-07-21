@@ -1,6 +1,6 @@
 # Praesidium NVR
 
-Praesidium NVR is an enterprise network video recorder built with the .NET 8 SDK. It records and serves RTSP streams using FFmpeg and exposes a web interface from the `wwwroot` folder. Configuration is loaded from `/etc/nvr/config.json` with sensible defaults when the file is missing.
+Praesidium NVR is an enterprise network video recorder built with the .NET 8 SDK. It records and serves RTSP streams using FFmpeg and exposes a web interface from the `wwwroot` folder. Configuration is loaded from `/etc/nvr/config.json` with sensible defaults when the file is missing or empty.
 
 ## Prerequisites
 
