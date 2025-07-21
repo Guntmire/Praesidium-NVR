@@ -658,25 +658,26 @@ namespace EnterpriseNVR
             var outputPath = $"/tmp/live_{streamId}.m3u8";
 
             var rtspUrl = BuildRtspUrl(camera);
-            var ffmpegArgs = $"-i \"{rtspUrl}\" " +
-                           $"-c:v libx264 -preset ultrafast -tune zerolatency " +
-                           $"-c:a aac -b:a 128k " +
-                           $"-f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments " +
-                           $"-hls_segment_filename /tmp/live_{streamId}_%03d.ts " +
-                           $"\"{outputPath}\"";
+            var ffmpegArgs = $"-i \"$RTSP_URL\" " +
+                            $"-c:v libx264 -preset ultrafast -tune zerolatency " +
+                            $"-c:a aac -b:a 128k " +
+                            $"-f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments " +
+                            $"-hls_segment_filename /tmp/live_{streamId}_%03d.ts " +
+                            $"\"{outputPath}\"";
 
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "ffmpeg",
-                    Arguments = ffmpegArgs,
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"exec ffmpeg {ffmpegArgs}\"",
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 }
             };
+            process.StartInfo.EnvironmentVariables["RTSP_URL"] = rtspUrl;
 
             process.Start();
             _liveStreams.TryAdd(streamId, process);
@@ -941,12 +942,12 @@ namespace EnterpriseNVR
 
             var rtspUrl = BuildRtspUrl(camera);
             var segmentPattern = Path.Combine(liveDir, $"{localTime:yyyyMMdd}_%H%M%S.ts");
-            var ffmpegArgs = BuildFFmpegArgs(rtspUrl, segmentPattern, camera.SegmentSeconds);
+            var ffmpegArgs = BuildFFmpegArgs("$RTSP_URL", segmentPattern, camera.SegmentSeconds);
 
             var processInfo = new ProcessStartInfo
             {
-                FileName = "ffmpeg",
-                Arguments = ffmpegArgs,
+                FileName = "/bin/bash",
+                Arguments = $"-c \"exec ffmpeg {ffmpegArgs}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
@@ -954,6 +955,7 @@ namespace EnterpriseNVR
                 WorkingDirectory = liveDir
             };
 
+            processInfo.EnvironmentVariables["RTSP_URL"] = rtspUrl;
             var process = new Process { StartInfo = processInfo };
             
             process.OutputDataReceived += (sender, e) => 
@@ -1456,16 +1458,18 @@ namespace EnterpriseNVR
         private readonly StorageManager _storageManager;
         private readonly MetricsCollector _metricsCollector;
         private readonly DatabaseService? _database;
+        private readonly VideoStreamingService _videoService;
         private readonly ILogger<NvrController> _logger;
 
         public NvrController(ConfigurationManager configManager, RtspStreamManager streamManager, 
             StorageManager storageManager, MetricsCollector metricsCollector, ILogger<NvrController> logger,
-            DatabaseService? database = null)
+            VideoStreamingService videoService, DatabaseService? database = null)
         {
             _configManager = configManager;
             _streamManager = streamManager;
             _storageManager = storageManager;
             _metricsCollector = metricsCollector;
+            _videoService = videoService;
             _database = database;
             _logger = logger;
         }
@@ -1544,6 +1548,42 @@ namespace EnterpriseNVR
         public IActionResult GetStatus()
         {
             return Ok(_streamManager.GetStreamInfo());
+        }
+
+        [HttpGet("live/{cameraId}")]
+        public IActionResult StartLiveView(string cameraId)
+        {
+            var config = _configManager.GetConfiguration();
+            var camera = config.Cameras.Find(c => c.Id == cameraId);
+            if (camera == null)
+                return NotFound();
+
+            var id = _videoService.StartLiveStreamAsync(camera);
+            return Ok(new { streamId = id });
+        }
+
+        [HttpPost("live/{streamId}/stop")]
+        public IActionResult StopLiveView(string streamId)
+        {
+            _videoService.StopLiveStream(streamId);
+            return Ok();
+        }
+
+        [HttpGet("live/{streamId}/playlist")]
+        public IActionResult LivePlaylist(string streamId)
+        {
+            var path = $"/tmp/live_{streamId}.m3u8";
+            if (!System.IO.File.Exists(path)) return NotFound();
+            return PhysicalFile(path, "application/vnd.apple.mpegurl");
+        }
+
+        [HttpGet("live/{streamId}/{segment}")]
+        public IActionResult LiveSegment(string streamId, string segment)
+        {
+            var file = Path.GetFileName(segment);
+            var path = $"/tmp/{file}";
+            if (!System.IO.File.Exists(path)) return NotFound();
+            return PhysicalFile(path, "video/MP2T");
         }
 
         [HttpGet("storage/pools")]
@@ -1684,6 +1724,17 @@ namespace EnterpriseNVR
                 _logger.LogError($"Error getting recordings: {ex.Message}");
                 return BadRequest(new { error = ex.Message });
             }
+        }
+
+        [HttpGet("playback")]
+        public IActionResult PlayRecording([FromQuery] string path)
+        {
+            if (string.IsNullOrEmpty(path)) return BadRequest();
+            var baseDir = Path.GetFullPath(_configManager.GetConfiguration().StorageBasePath);
+            var fullPath = Path.GetFullPath(path);
+            if (!fullPath.StartsWith(baseDir)) return BadRequest();
+            if (!System.IO.File.Exists(fullPath)) return NotFound();
+            return PhysicalFile(fullPath, "video/mp4", enableRangeProcessing: true);
         }
     }
 
