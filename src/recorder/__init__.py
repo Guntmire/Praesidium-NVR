@@ -1,4 +1,4 @@
-"""Stream recording utilities using OpenCV."""
+"""Stream recording utilities using OpenCV with basic reconnection and segmenting logic."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import cv2
 
 
 class StreamRecorder:
-    """Record an RTSP stream to disk with basic reconnection logic and segmenting."""
+    """Record an RTSP stream to disk in time-based segments with automatic reconnection."""
 
     def __init__(self, url: str, base_dir: Path, cam_id: str, segment_seconds: int = 30):
         self.url = url
