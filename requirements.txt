@@ -1,2 +1,3 @@
 # Core dependencies for the NVR
 opencv-python
+Flask

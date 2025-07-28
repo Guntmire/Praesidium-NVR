@@ -37,3 +37,7 @@ python -m src.main
 ```
 
 This will load the default configuration and start the placeholder API server.
+
+## Web interface
+
+Running the application starts a small Flask server on port `8000`. The index page provides a form for entering an RTSP URL. Submitting the form begins recording the stream to the `recordings/` directory. Each stream is recorded in a separate background thread with automatic reconnection if the connection drops.
