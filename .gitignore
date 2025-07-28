@@ -1,0 +1,15 @@
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.flv
+*.wmv
+*.webm
+*.mpeg
+*.mp3
+*.wav
+*.aac
+*.ogg
+
+src/
+venv/
