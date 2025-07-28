@@ -9,7 +9,6 @@ from flask import Flask, redirect, render_template_string, request, url_for
 
 from ..recorder import StreamRecorder
 
-
 INDEX_HTML = """
 <!doctype html>
 <title>Praesidium NVR</title>
@@ -57,7 +56,6 @@ EDIT_HTML = """
   {% endif %}
 </form>
 """
-
 
 def start_server(config: Any) -> None:
     """Start the Flask server allowing manual RTSP input."""
