@@ -1,0 +1,39 @@
+# Praesidium NVR
+
+This repository provides a modular network video recorder (NVR) written in Python. The goal is to build the project in a way that allows each feature to evolve independently while maintaining a simple core.
+
+## Project layout
+
+```
+src/
+    api/            # Interfaces for web APIs or external integrations
+    configuration/  # Configuration loading and management
+    storage/        # Video storage backends
+    video_capture/  # Camera handling and frame capture
+    main.py         # Application entry point
+```
+
+Each package exposes minimal interfaces so implementations can be replaced without affecting other modules.
+
+## Development setup
+
+1. **Python version**: 3.11 or newer is recommended.
+2. **Virtual environment** (optional but encouraged):
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Running
+
+To start the application:
+
+```bash
+python -m src.main
+```
+
+This will load the default configuration and start the placeholder API server.
