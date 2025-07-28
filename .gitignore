@@ -11,5 +11,6 @@
 *.aac
 *.ogg
 
-src/
+
 venv/
+__pycache__/
