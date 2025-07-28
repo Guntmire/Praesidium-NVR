@@ -14,7 +14,9 @@ import cv2
 class StreamRecorder:
     """Record an RTSP stream to disk in time-based segments with automatic reconnection."""
 
-    def __init__(self, url: str, base_dir: Path, cam_id: str, segment_seconds: int = 30):
+    def __init__(
+        self, url: str, base_dir: Path, cam_id: str, segment_seconds: int = 30
+    ):
         self.url = url
         self.base_dir = base_dir
         self.cam_id = cam_id
@@ -26,6 +28,8 @@ class StreamRecorder:
         """Start recording in a background thread."""
         if self.active:
             return
+        # Ensure the camera directory exists even if the stream cannot be opened
+        (self.base_dir / self.cam_id).mkdir(parents=True, exist_ok=True)
         self.active = True
         self.thread = threading.Thread(target=self._record_loop, daemon=True)
         self.thread.start()
@@ -41,7 +45,9 @@ class StreamRecorder:
         while self.active:
             cap = cv2.VideoCapture(self.url)
             if not cap.isOpened():
-                print(f"Failed to open {self.url}, retrying...")
+                print(
+                    f"Failed to open stream for {self.cam_id} at {self.url}, retrying..."
+                )
                 cap.release()
                 time.sleep(2)
                 continue
@@ -62,7 +68,9 @@ class StreamRecorder:
 
                 if writer is None:
                     file_path = self._segment_path(segment_start)
-                    writer = cv2.VideoWriter(str(file_path), fourcc, fps, (width, height))
+                    writer = cv2.VideoWriter(
+                        str(file_path), fourcc, fps, (width, height)
+                    )
 
                 writer.write(frame)
 
