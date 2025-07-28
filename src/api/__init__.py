@@ -15,8 +15,8 @@ INDEX_HTML = """
 <title>Praesidium NVR</title>
 <h1>Add RTSP Stream</h1>
 <form method="post" action="/add">
-  <input type="text" name="cam_id" placeholder="camera id" required />
-  <input type="text" name="url" placeholder="rtsp://..." style="width: 300px;" />
+  <input type="text" name="cam_id" placeholder="Camera ID" required />
+  <input type="text" name="url" placeholder="rtsp://..." style="width: 300px;" required />
   <input type="submit" value="Start Recording" />
 </form>
 """
@@ -43,3 +43,4 @@ def start_server(config: Any) -> None:
         return redirect(url_for("index"))
 
     app.run(host="0.0.0.0", port=8000)
+

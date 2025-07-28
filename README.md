@@ -40,4 +40,6 @@ This will load the default configuration and start the placeholder API server.
 
 ## Web interface
 
+
 Running the application starts a small Flask server on port `8000`. The index page now includes fields for a camera ID and RTSP URL. Submitting the form begins recording the stream under `recordings/<cam_id>/YEAR/MONTH/DAY/HOUR` in 30‐second MP4 segments. Each stream is recorded in a separate background thread with automatic reconnection if the connection drops.
+
